@@ -1,0 +1,179 @@
+本次作业主要是关于线性回归问题。
+首先声明，变量以_开头的是向量，否则为实数。
+学习率使用&表示
+
+在该类问题中主要使用的符号有：
+①
+h(_x):预测函数，数据集有几个特征就有几个参数，是一个多项式，详细形式如下：
+h(_x) = theta0 + theta1*x1 + theta2*x2 + .... + thetam*xm
+使用矩阵形式可以表示为:
+h(_x) = _theta'*_x   即_theta的转置与_x的乘积。
+其中，m是表示有多少行数据集，即样本有多少。
+②
+J(_theta):称为代价函数，主要用于评估当前的参数_theta结合预测函数拟合出来的数据与真实数据的差别。
+公式为：
+J(_theta) = 1/(2*m) * sum(power(h(_x) - _y,  2))
+
+可以看出，参数不一定能够人为的选择，需要择优迭代，因此在这种问题中主要使用梯度下降算法来计算迭代得到
+使得代价函数J(_theta)值最小的参数_theta。
+具体做法为：
+repeat:{
+    _theta_j = _theta_j - 学习率*代价函数J(_theta)下对_theta_j求偏导
+             = _theta_j - &*sum((h(_x)-_y)*_x_j)
+}
+在这里需要注意，_theta的所有值都需要同步更新。
+
+
+---
+还有一个问题就是，如果不同的特征之间的值相差过大，比如特征1的取值范围为>1000,而特征2的取值范围为0-1，此时特征1与特征2相差的量级太大，会导致在
+使用梯度下降算法计算_theta时，代价函数收敛太慢甚至发散，因此需要对所有的特征进行特征归一化处理，具体做法是：
+先分别计算每一特征的特征值的平均值，再将原值减去这个平均值替换原值；然后再对每一个特征求标准差，再将原值除以这个标准差替换原值即可。
+
+
+
+---
+作业的详情如下：
+首先编写单一特征的代价函数计算代码：
+function J = computeCost(X, y, theta)
+%COMPUTECOST Compute cost for linear regression
+%   J = COMPUTECOST(X, y, theta) computes the cost of using theta as the
+%   parameter for linear regression to fit the data points in X and y
+
+% Initialize some useful values
+m = length(y); % number of training examples
+
+% You need to return the following variables correctly 
+J = 0;
+
+% ====================== YOUR CODE HERE ======================
+% Instructions: Compute the cost of a particular choice of theta
+%               You should set J to the cost.计算代价函数
+inner = power(X*theta - y,2);
+inner = sum(inner);
+
+J = inner/(2*m);
+
+% =========================================================================
+
+end
+-----------------------------------------------------
+再编写计算单一特征数据集下的梯度下降算法代码：
+function [theta, J_history] = gradientDescent(X, y, theta, alpha, num_iters)
+%GRADIENTDESCENT Performs gradient descent to learn theta
+%   theta = GRADIENTDESCENT(X, y, theta, alpha, num_iters) updates theta by 
+%   taking num_iters gradient steps with learning rate alpha
+%   alpha是学习率  num_iters是迭代次数。
+% Initialize some useful values
+m = length(y); % number of training examples
+J_history = zeros(num_iters, 1);  %用于记录每一次迭代的代价函数值
+thetaD = size(theta);    
+for iter = 1:num_iters
+    %先初始化
+    temptheta = zeros(thetaD(1),thetaD(2)); %因为在计算过程中theta会变动，使用一个temp暂存
+    error = X*theta - y;   
+    % ====================== YOUR CODE HERE ======================
+    % Instructions: Perform a single gradient step on the parameter vector
+    %               theta. 
+    %
+    % Hint: While debugging, it can be useful to print out the values
+    %       of the cost function (computeCost) and gradient here.
+    %
+    for j = 1 :length(theta)
+        
+        term = error.*(X(:,j));
+        temptheta(j,1) = theta(j,1) - ((alpha/m)*sum(term));
+    end
+    theta = temptheta;
+
+    % ===========================================================
+    % Save the cost J in every iteration    
+    J_history(iter) = computeCost(X, y, theta);
+
+end
+
+end
+-----------------------------------------------------
+当数据集为多特征时，多特征下代价函数与梯度下降算法的与单一特征下的形式都一样，不再重复。
+
+然后编写特征归一化的代码：
+function [X_norm, mu, sigma] = featureNormalize(X)
+%FEATURENORMALIZE Normalizes the features in X 
+%   FEATURENORMALIZE(X) returns a normalized version of X where
+%   the mean value of each feature is 0 and the standard deviation
+%   is 1. This is often a good preprocessing step to do when
+%   working with learning algorithms.
+
+% You need to set these values correctly
+X_norm = X;
+mu = zeros(1, size(X, 2));  %定义一个与特征个数相等的行向量，初始值全为0
+sigma = zeros(1, size(X, 2));     %这个一样
+
+% ====================== YOUR CODE HERE ======================
+% Instructions: First, for each feature dimension, compute the mean
+%               of the feature and subtract it from the dataset,
+%               storing the mean value in mu. Next, compute the 
+%               standard deviation of each feature and divide
+%               each feature by it's standard deviation, storing
+%               the standard deviation in sigma. 
+%
+%               Note that X is a matrix where each column is a 
+%               feature and each row is an example. You need 
+%               to perform the normalization separately for 
+%               each feature. 
+%
+% Hint: You might find the 'mean' and 'std' functions useful.
+%       
+%
+%对每一维特征都计算其平均值并分别存放到mu中
+for i = 1 : size(X,2)
+    mu(1,i) = mean(X(:,i));
+end
+%再将每一列的特征值都减去相应的平均值
+for i = 1:size(X,2)
+    for j = 1:size(X,1)
+        X(j,i) = X(j,i) - mu(1,i);
+    end
+end
+%再对每一个特征计算标准差并分别存放到sigma中
+for i = 1:size(X,2)
+    sigma(1,i) = std(X(:,i));
+end
+%最后将每个特征值除以相应的标准差
+for i = 1 : size(X,2)
+    for j = 1:size(X,1)
+        X(j,i) = X(j,i)/sigma(1,i);
+    end
+end
+X_norm = X
+
+% ============================================================
+
+end
+
+
+----------------------------------------------------------------------
+最后，使用正规方程代替梯度下降算法来求出最佳参数，这种方法与梯度下降算法的比较如下：
+梯度下降算法需要选择学习率，需要多次迭代，当特征数量n大时也能较好适用，适用于各种类型的模型。
+正规方程不需要学习率，直接一次计算完成，但是不适合数据集很大的情况。
+编码如下：
+function [theta] = normalEqn(X, y)
+%NORMALEQN Computes the closed-form solution to linear regression 
+%   NORMALEQN(X,y) computes the closed-form solution to linear 
+%   regression using the normal equations.
+
+theta = zeros(size(X, 2), 1);
+
+% ====================== YOUR CODE HERE ======================
+% Instructions: Complete the code to compute the closed form solution
+%               to linear regression and put the result in theta.
+%
+
+% ---------------------- Sample Solution ----------------------
+theta = pinv(X'*X)*X'*y;
+
+% -------------------------------------------------------------
+% ============================================================
+
+end
+
+
